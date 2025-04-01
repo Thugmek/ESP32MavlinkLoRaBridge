@@ -21,7 +21,8 @@ void loop() {
 }
 
 #ifdef PLATFORM_LINUX
-int main(){
+int main(int argc, char *argv[]){
+    cout << argv[1] << "\n";
     setup();
     serial_init();
     while(1){

@@ -3,9 +3,9 @@
 | GPIO | Radiomaster Bandit Nano | Radiomaster BR3 |
 | ---- | ----------------------- | --------------- |
 | 0    |                         |  |
-| 1    |                         |  |
+| 1    | USB-UART TX             |  |
 | 2    | misc_fan_en             |  |
-| 3    |                         |  |
+| 3    | USB-UART RX             |  |
 | 4    | radio_nss               |  |
 | 5    | radio_rst               |  |
 | 6    |                         |  |
