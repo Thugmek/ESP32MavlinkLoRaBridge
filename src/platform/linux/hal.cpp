@@ -11,6 +11,7 @@
 #include <string.h>
 
 #include "../../config.h"
+#include "../../buffer.hpp"
 
 using namespace std;
 
@@ -22,45 +23,65 @@ void hal_debug(std::string msg){
     cout << msg << "\n";
 }
 
+CircularBuffer<uint8_t> serial_buffer(128);
+string serial_port_name;
+int serial_port;
+void select_serial_port(string port)
+{
+    serial_port_name = port;
+}
+
+void serial_thread()
+{
+    cout << "Thread started. Serial port: " << serial_port << "\n";
+    uint8_t read_buf [256];
+    cout << "Buff Created\n";
+    while(1){
+        cout << "Loop...\n";
+        int n = read(serial_port, &read_buf, sizeof(read_buf));
+        cout << "readed: " << n << "\n";
+        for(int i = 0;i<n;i++){
+            serial_buffer.push(read_buf[i]);
+        }
+    }
+}
+
 void serial_init(){
-    int serial_port = open("/dev/pts/4", O_RDWR);
+    cout << "Opening serial port: " << serial_port_name << "\n";
+    serial_port = open(serial_port_name.c_str(), O_RDWR);
+    cout << "Opened serial port: " << serial_port_name << ", " << serial_port << "\n";
     struct termios tty;
+    cout << "termios tty\n";
     if(tcgetattr(serial_port, &tty) != 0) {
         printf("Error %i from tcgetattr: %s\n", errno, strerror(errno));
     }
-    tty.c_cflag &= ~PARENB;
-    tty.c_cflag &= ~CSTOPB;
-    tty.c_cflag &= ~CSIZE;
-    tty.c_cflag |= CS8;
-    tty.c_cflag &= ~CRTSCTS;
-    tty.c_cflag |= CREAD | CLOCAL;
-    tty.c_lflag &= ~ICANON;
-    tty.c_lflag &= ~ECHO; // Disable echo
-    tty.c_lflag &= ~ECHOE; // Disable erasure
-    tty.c_lflag &= ~ECHONL; // Disable new-line echo
-    tty.c_lflag &= ~ISIG;
-    tty.c_iflag &= ~(IXON | IXOFF | IXANY);
-    tty.c_iflag &= ~(IGNBRK|BRKINT|PARMRK|ISTRIP|INLCR|IGNCR|ICRNL);
-    tty.c_oflag &= ~OPOST; // Prevent special interpretation of output bytes (e.g. newline chars)
-    tty.c_oflag &= ~ONLCR; // Prevent conversion of newline to carriage return/line feed
-    tty.c_cc[VTIME] = 10;    // Wait for up to 1s (10 deciseconds), returning as soon as any data is received.
-    tty.c_cc[VMIN] = 0;
-    cfsetispeed(&tty, B460800);
-    cfsetospeed(&tty, B460800);
-    if (tcsetattr(serial_port, TCSANOW, &tty) != 0) {
-        printf("Error %i from tcsetattr: %s\n", errno, strerror(errno));
-    }
-    string msg = "Hello world\n";
+    cout << "Starting thread\n";
+    std::thread t1(serial_thread);
+    t1.detach();
+    /*string msg = "Hello world\n";
     for(int i = 0;i<5;i++){
         write(serial_port, msg.c_str(), msg.length());
-    }
+    }*/
 
-    char read_buf [256];
+    /*uint8_t read_buf [256];
     for(int i = 0;i<20;i++){
         int n = read(serial_port, &read_buf, sizeof(read_buf));
-        cout << read_buf << "\n";
+        cout << "Len: " << n << ": [";
+        for(int j = 0;j<n;j++){
+            cout.setf(ios::hex, ios::basefield);
+            cout << (int)read_buf[j];
+            cout.unsetf(ios::hex);
+            if(j != n-1) cout << ", ";
+        }
+        cout << "]\n";
     }
-    close(serial_port);
+    close(serial_port);*/
 }
 void serial_write(std::string msg);
-void serial_read();
+
+uint8_t serial_read(){
+    return serial_buffer.pop();
+}
+bool serial_available(){
+    return !serial_buffer.isEmpty();
+}

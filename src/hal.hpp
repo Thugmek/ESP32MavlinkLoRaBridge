@@ -7,6 +7,10 @@ void hal_debug(std::string msg);
 void LoRa_init();
 void LoRa_send_message(uint8_t *data, uint8_t len);
 
+#ifdef PLATFORM_LINUX
+void select_serial_port(std::string port);
+#endif
 void serial_init();
 void serial_write(std::string msg);
-void serial_read();
+uint8_t serial_read();
+bool serial_available();
