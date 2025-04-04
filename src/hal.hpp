@@ -4,6 +4,9 @@
 void hal_delay(uint16_t ms);
 void hal_debug(std::string msg);
 
+#ifdef PLATFORM_LINUX
+void select_LoRa_socket_role(bool server);
+#endif
 void LoRa_init();
 void LoRa_send_message(uint8_t *data, uint8_t len);
 

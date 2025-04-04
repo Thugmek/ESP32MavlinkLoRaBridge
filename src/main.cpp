@@ -24,6 +24,13 @@ void loop() {
 
 #ifdef PLATFORM_LINUX
 int main(int argc, char *argv[]){
+
+    cout << "LoRa server: " << (*argv[2]=='A') << "\n";
+    select_LoRa_socket_role(*argv[2]=='A');
+    LoRa_init();
+
+    return 0;
+
     cout << "Serial port: " << argv[1] << "\n";
     select_serial_port(string(argv[1]));
     serial_init();
