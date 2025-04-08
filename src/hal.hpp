@@ -8,7 +8,9 @@ void hal_debug(std::string msg);
 void select_LoRa_socket_role(bool server);
 #endif
 void LoRa_init();
-void LoRa_send_message(uint8_t *data, uint8_t len);
+void LoRa_send(uint8_t *data, uint16_t len);
+uint16_t LoRa_receive(uint8_t *data);
+bool LoRa_available();
 
 #ifdef PLATFORM_LINUX
 void select_serial_port(std::string port);
