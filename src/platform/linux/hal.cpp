@@ -11,6 +11,7 @@
 #include <errno.h>
 #include <termios.h>
 #include <string.h>
+#include <mutex>
 
 #include "../../config.h"
 #include "../../buffer.hpp"
@@ -26,8 +27,47 @@ void hal_debug(std::string msg){
 }
 // LoRa =======================================================================
 bool LoRa_server = false;
+std::mutex LoRa_mutex;
+int LoRa_socket;
+bool LoRa_data_available = false;
+char LoRa_buff[256];
+
 void select_LoRa_socket_role(bool server){
     LoRa_server = server;
+}
+
+void LoRa_receive_thread(int socket){
+    char recv_buf[256];
+    while(1){
+        int data_recv = 0;
+        data_recv = recv(socket, recv_buf, 256, 0);
+        if(data_recv > 0){
+            //cout << data_recv << ", " << recv_buf << "\n";
+            LoRa_mutex.lock();
+            memcpy(LoRa_buff, recv_buf, 256);
+            LoRa_data_available = true;
+            LoRa_mutex.unlock();
+        }else if(data_recv < 0){
+            cout << "Error on recv() call: " << data_recv << "\n";
+        }
+    }
+}
+
+void LoRa_send(uint8_t *data, uint16_t len){
+    if( send(LoRa_socket, data, len, 0 ) == -1 )
+    {
+        hal_debug("Client: Error on send() call \n");
+    }
+}
+uint16_t LoRa_receive(uint8_t *data){
+    LoRa_mutex.lock();
+    memcpy(data, LoRa_buff, 256);
+    LoRa_data_available = false;
+    LoRa_mutex.unlock();
+    return 0;
+}
+bool LoRa_available(){
+    return LoRa_data_available;
 }
 
 void LoRa_init_server(){
@@ -67,10 +107,62 @@ void LoRa_init_server(){
         return;
     }
 
+    std::thread t1(LoRa_receive_thread, client_socket);
+    t1.detach();
+
+    /*char send_buf[] = "Hello World";
+
+    while(1){
+        if( send(client_socket, send_buf, 12, 0 ) == -1 )
+        {
+            hal_debug("Client: Error on send() call \n");
+        }
+        hal_delay(500);
+    }*/
+
+    LoRa_socket = client_socket;
+
 }
 
 void LoRa_init_client(){
+    int sock = 0;
+	int data_len = 0;
+	struct sockaddr_un remote;
 
+	if( (sock = socket(AF_UNIX, SOCK_STREAM, 0)) == -1  )
+	{
+		hal_debug("Client: Error on socket() call \n");
+		return;
+	}
+
+	remote.sun_family = AF_UNIX;
+	strcpy( remote.sun_path, "LoRaMockupSocket" );
+	data_len = strlen(remote.sun_path) + sizeof(remote.sun_family);
+
+	hal_debug("Client: Trying to connect... \n");
+	if( connect(sock, (struct sockaddr*)&remote, data_len) == -1 )
+	{
+		hal_debug("Client: Error on connect call \n");
+		return;
+	}
+
+	hal_debug("Client: Connected \n");
+
+    
+    std::thread t1(LoRa_receive_thread, sock);
+    t1.detach();
+
+    LoRa_socket = sock;
+
+
+    char send_buf[] = "Hello World";
+    /*while(1){
+        if( send(sock, send_buf, 12, 0 ) == -1 )
+        {
+            hal_debug("Client: Error on send() call \n");
+        }
+        hal_delay(500);
+    }*/
 }
 
 void LoRa_init(){

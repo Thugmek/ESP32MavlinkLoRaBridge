@@ -2,6 +2,7 @@
 #include "hal.hpp"
 #include "buffer.hpp"
 #include "mavlink_packet.hpp"
+#include <string.h>
 
 #ifdef MCU_ESP32
     #error "Tohle vole nechceš..."
@@ -28,6 +29,21 @@ int main(int argc, char *argv[]){
     cout << "LoRa server: " << (*argv[2]=='A') << "\n";
     select_LoRa_socket_role(*argv[2]=='A');
     LoRa_init();
+
+    uint8_t receive_buff[255];
+    uint8_t send_buff[] = "Hello world";
+
+    while(1){
+        cout << "Cycle start\n";
+        if(LoRa_available()){
+            cout << "LoRa available\n";
+            LoRa_receive(receive_buff);
+            cout << "Received: " << receive_buff << "\n";
+        }
+        cout << "LoRa send\n";
+        LoRa_send(send_buff, 255);
+        hal_delay(1000);
+    }
 
     return 0;
 
